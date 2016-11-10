@@ -19,7 +19,7 @@ class AwbXmlInterface {
 	 * @param  string $creation_log: name of the error log.
 	 * @return boolean
 	 */
-	public static function checkConfigXML( $reader, $creation_log ){
+	public static function checkConfigXML( $reader ){
 		$errorMessages = array();
 
 		/*check input XML file */
@@ -31,16 +31,18 @@ class AwbXmlInterface {
 		}
 
 		if( !empty( $errorMessages ) ){
-			$message = "Error in Reading config URL";
-			AwbLog::writeLog($creation_log, $message);
+			$message = "Error: Problem Reading config URL";
+			AwbLog::writeLog($message);
 
 			foreach($errorMessages as $errorMessage){
 
 				$message = $errorMessage;
-				AwbLog::writeLog($creation_log, $message);
+				AwbLog::writeLog($message);
 			}
 			return false;
 		} else {
+			$message = "Success: XML parsed Successfully.";
+			AwbLog::writeLog($message);
 			return true;
 		}
 	}
@@ -53,8 +55,14 @@ class AwbXmlInterface {
 		self::$template 	= (string) $reader->getProperty('template');
 		self::$description 	= (string) $reader->getProperty('description');
 		self::$topic 		= (string) $reader->getProperty('topic');
-		self::$topic 		= (string) $reader->getProperty('topic');
 		self::$language 	= (string) AwbXmlInterface::getBlogLanguageFromXml($reader);
+
+		$message = "Destination Blog Address: ".self::$address;
+		AwbLog::writeLog($message);
+
+		$message = "Destination Blog Title: ".self::$title;
+		AwbLog::writeLog($message);
+
 	}
 
 

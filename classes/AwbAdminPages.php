@@ -5,7 +5,7 @@ class AwbAdminPages {
 	/**
      * Admin page for AWBloggerV2
      * @return void
-     */
+    */
     public static function create_blog() {
     	if( isset($_POST['action']) ){
     		$result = AwbAdminPages::processCreateSiteForm($_POST);
@@ -49,53 +49,78 @@ class AwbAdminPages {
     	$siteTemplate = $formData['siteTemplate'];
 		$site_config  = $formData['site_config'];
 
-		$log_fileName = "logs/awb_".date("Y_m_d_H_i_s").".txt";
-		$creation_log =  AwbLog::getPluginDir().$log_fileName;
+		$log_fileName = "awb_".date("Y_m_d_H_i_s").".txt";
+		$creation_log =  AwbLog::SetLogFilename( $log_fileName );
 
-		$message = "======================= Blog Creation Log ==========================";
-		AwbLog::writeLog($creation_log, $message);
+		echo "<h1>Blog Creation log.</h1>";
+		AwbLog::startLogging();
 
 		$message = "Source Blogname: ".$siteTemplate;
-		AwbLog::writeLog($creation_log, $message);
+		AwbLog::writeLog($message);
 
 		$message = "Config URL: ".$site_config;
-		AwbLog::writeLog($creation_log, $message);
+		AwbLog::writeLog($message);
 
 		$sourceBlog = AwbAdminPages::checkSourceBlog( $siteTemplate );
 
 		if( $sourceBlog  ) {
 			/* XML Config Reader Valid */
-			$reader  = 	new AwbConfigReader( $site_config );
-			$isConfigXMLValid = AwbXmlInterface::checkConfigXML($reader, $creation_log);
+			$reader  			= 	new AwbConfigReader( $site_config );
+			$isConfigXMLValid 	= AwbXmlInterface::checkConfigXML($reader);
 
 			if( $isConfigXMLValid ) {
 				AwbXmlInterface::readConfigXML($reader);
-				echo AwbXmlInterface::$title;
 
-				echo "<br>";
-				echo AwbXmlInterface::$address;
-				echo "<br>";
-				echo AwbXmlInterface::$title;
-				echo "<br>";
-				echo AwbXmlInterface::$email;
-				echo "<br>";
-				echo AwbXmlInterface::$language;
+				$result = AwbDbInterface::createDestinationDatabse(AwbXmlInterface::$address );
+				if( $result ) {
+					AwbWpInterface::setSource($siteTemplate);
+					AwbDbInterface::setSourceDb();
+					AwbDbInterface::setDestinationDb( AwbXmlInterface::$address );
 
+					/*create destination Blog */
+					$isCreated = AwbWpInterface::createDestinationDirectory(AwbXmlInterface::$address );
+
+					if( $isCreated ){
+
+						echo "<br>";
+						echo AwbWpInterface::$source;
+						echo "<br>";
+						echo AwbWpInterface::$destination;
+						echo "<br>";
+						/* Initiate Blog Copy  */
+						$isCopied = AwbWpInterface::copyBlog();
+						if( $isCopied ) {
+							/** copy database */
+							$sourceDB      = AwbDbInterface::getDatabaseName($siteTemplate);
+							$destinationDB = AwbDbInterface::getDatabaseName(AwbXmlInterface::$address);
+
+							$isDbCopied    = AwbDbInterface::copyDatabase($sourceDB, $destinationDB );
+							if( $isDbCopied ){
+								echo "<p>Database Cloned Successfully!</p>";
+							} else {
+								echo "<p>Database Not Cloned!</p>";
+							}
+						}
+					}
+
+				} else {
+					$message  = "ERROR: Error in creating new Database.";
+					echo "<p>".$message."</p>";
+				}
 			} else {
-				echo '<div style="color: red"><h3>Error in Reading config URL</h3>
-						<p>Please check log for more details</p>.
-					</div>';
+
+				echo '<div style="color: red"><h3>Error in Reading config URL</h3></div>';
 			}
 
 		} else {
 			$message = "ERROR: Error in Selected Source Blog";
-			AwbLog::writeLog($creation_log, $message);
+			AwbLog::writeLog($message);
 			echo "<p>Error in Selected Source Blog.</p>";
 		}
 
-		$message = "====================================================================";
-		AwbLog::writeLog($creation_log, $message);
+		AwbLog::endLogging();
 
+		echo '<h4><a href="http://iris.scanmine.com/wp-content/plugins/awBloggerV2/logs/'.$log_fileName.'" target="_blank"> Click here to check log. </a></h4>';
     }
 
     /**
@@ -112,9 +137,6 @@ class AwbAdminPages {
     		return false;
     	}
     }
-
-
-
 }/* class ends here */
 
 ?>
