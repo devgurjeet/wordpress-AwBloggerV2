@@ -82,11 +82,6 @@ class AwbAdminPages {
 
 					if( $isCreated ){
 
-						echo "<br>";
-						echo AwbWpInterface::$source;
-						echo "<br>";
-						echo AwbWpInterface::$destination;
-						echo "<br>";
 						/* Initiate Blog Copy  */
 						$isCopied = AwbWpInterface::copyBlog();
 						if( $isCopied ) {
@@ -94,9 +89,19 @@ class AwbAdminPages {
 							$sourceDB      = AwbDbInterface::getDatabaseName($siteTemplate);
 							$destinationDB = AwbDbInterface::getDatabaseName(AwbXmlInterface::$address);
 
+							/* update wp-config.php */
+							AwbWpInterface::updateWPconfig($destinationDB);
+
 							$isDbCopied    = AwbDbInterface::copyDatabase($sourceDB, $destinationDB );
 							if( $isDbCopied ){
-								echo "<p>Database Cloned Successfully!</p>";
+								AwbDbInterface::updateWpOptions();
+								$siteUrl = AwbWpInterface::getSiteUrl();
+
+								/*udpate AW Blogger List */
+								AwbDbInterface::updateAwBloggerList();
+
+								echo '<h2>Site created Successfully:  <a href="'.$siteUrl.'" target="_blank"> Click here to check site. </a></h2>';
+
 							} else {
 								echo "<p>Database Not Cloned!</p>";
 							}
@@ -117,9 +122,7 @@ class AwbAdminPages {
 			AwbLog::writeLog($message);
 			echo "<p>Error in Selected Source Blog.</p>";
 		}
-
 		AwbLog::endLogging();
-
 		echo '<h4><a href="http://iris.scanmine.com/wp-content/plugins/awBloggerV2/logs/'.$log_fileName.'" target="_blank"> Click here to check log. </a></h4>';
     }
 

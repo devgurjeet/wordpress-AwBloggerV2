@@ -1,4 +1,5 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class AwbDbInterface {
@@ -137,10 +138,17 @@ class AwbDbInterface {
 	        $tab 	= 	$line[0];
 	        mysqli_query($connect, "DROP TABLE IF EXISTS $destinationDB.$tab");
 	        mysqli_query($connect, "CREATE TABLE $destinationDB.$tab LIKE $sourceDB.$tab") or die(mysql_error());
-	        mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab");
+
+	        if( $tab == 'wp_posts' ){
+	        	mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab WHERE $sourceDB.$tab.post_type != 'attachment' AND $sourceDB.$tab.post_type != 'post' AND $sourceDB.$tab.post_type != 'revision'");
+	        }elseif ( $tab == 'wp_postmeta') {
+				mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab WHERE $sourceDB.$tab.meta_key != 'sm:meta-title' AND $sourceDB.$tab.meta_key != 'sm:meta-description' AND $sourceDB.$tab.meta_key != 'sm:meta-image' AND $sourceDB.$tab.meta_key != 'custompost' AND $sourceDB.$tab.meta_key != 'enclosure1' AND $sourceDB.$tab.meta_key != 'metablogcategory' AND $sourceDB.$tab.meta_key != 'syndication_permalink' AND $sourceDB.$tab.meta_key != '_thumbnail_id' AND $sourceDB.$tab.meta_key != 'sm:block' AND $sourceDB.$tab.meta_key != 'enclosure' AND $sourceDB.$tab.meta_key != '_edit_last' AND $sourceDB.$tab.meta_key != '_edit_lock' AND $sourceDB.$tab.meta_key != '_encloseme' $sourceDB.$tab.meta_key != '_pingme' AND $sourceDB.$tab.meta_key != '_wp_attached_file' AND $sourceDB.$tab.meta_key != '_wp_attachment_backup_sizes' AND $sourceDB.$tab.meta_key != '_wp_attachment_context'");
+	        }else{
+				mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab");
+	        }
 
 	        // $message[] 	= 	"Table: [ " . $line[0] . " ] Done.";
-	        $message  = "Table: [ " . $line[0] . " ] Done.";
+	        $message  = "Table: [ " . $tab . " ] Done.";
 			AwbLog::writeLog($message);
 	    }
 
@@ -148,6 +156,167 @@ class AwbDbInterface {
 		AwbLog::writeLog($message);
 	    return true;
 	}
+
+	public static function updateWpOptions(){
+
+		$wpdb = AwbDbInterface::$destinationWpdb;
+
+		$address 		= AwbXmlInterface::$address;
+		$title 			= AwbXmlInterface::$title;
+		$email 			= AwbXmlInterface::$email;
+		$theme 			= AwbXmlInterface::$theme;
+		$template 		= AwbXmlInterface::$template;
+		$description 	= AwbXmlInterface::$description;
+		$topic 			= AwbXmlInterface::$topic;
+		$language 		= AwbXmlInterface::$language;
+
+
+
+		$protocol 	= 	isset($_SERVER["https"]) ? 'https' : 'http';
+
+		$blog_path 	= 	$protocol . "://" . $_SERVER['SERVER_NAME'] . DIRECTORY_SEPARATOR . $address . DIRECTORY_SEPARATOR;
+
+
+		/*update site URL */
+		$wpdb->update(
+			'wp_options',
+			array(
+				'option_value' => $blog_path,
+			),
+			array( 'option_name' => 'siteurl' ),
+			array(
+				'%s',
+			),
+			array( '%s' )
+		);
+
+		/*update home */
+		$wpdb->update(
+			'wp_options',
+			array(
+				'option_value' => $blog_path,
+			),
+			array( 'option_name' => 'home' ),
+			array(
+				'%s',
+			),
+			array( '%s' )
+		);
+
+		/*update home */
+		$wpdb->update(
+			'wp_options',
+			array(
+				'option_value' => trim($email),
+			),
+			array( 'option_name' => 'admin_email' ),
+			array(
+				'%s',
+			),
+			array( '%s' )
+		);
+
+		/*update title */
+		$wpdb->update(
+			'wp_options',
+			array(
+				'option_value' => trim($title),
+			),
+			array( 'option_name' => 'blogname' ),
+			array(
+				'%s',
+			),
+			array( '%s' )
+		);
+
+		/*update description */
+		$wpdb->update(
+			'wp_options',
+			array(
+				'option_value' => trim($description),
+			),
+			array( 'option_name' => 'blogdescription' ),
+			array(
+				'%s',
+			),
+			array( '%s' )
+		);
+
+		/*update WPLANG */
+		$wpdb->update(
+			'wp_options',
+			array(
+				'option_value' => trim($language),
+			),
+			array( 'option_name' => 'WPLANG' ),
+			array(
+				'%s',
+			),
+			array( '%s' )
+		);
+
+		/*update topic */
+		$wpdb->update(
+			'wp_options',
+			array(
+				'option_value' => trim($topic),
+			),
+			array( 'option_name' => 'topic' ),
+			array(
+				'%s',
+			),
+			array( '%s' )
+		);
+
+
+		/*update user Email  */
+		$wpdb->update(
+			'wp_users',
+			array(
+				'user_email' => trim($email),
+			),
+			array( 'ID' => 1 ),
+			array(
+				'%d',
+			),
+			array( '%s' )
+		);
+
+		$message  = "Success: Options updated Successfully.";
+		AwbLog::writeLog($message);
+
+		return true;
+	}
+
+
+	function updateAwBloggerList( $args ){
+		global $wpdb;
+
+		$address 		= AwbXmlInterface::$address;
+		$title 			= AwbXmlInterface::$title;
+		$email 			= AwbXmlInterface::$email;
+		$theme 			= AwbXmlInterface::$theme;
+		$template 		= AwbXmlInterface::$template;
+		$description 	= AwbXmlInterface::$description;
+		$topic 			= AwbXmlInterface::$topic;
+		$language 		= AwbXmlInterface::$language;
+
+		//** list of input arguments **//
+		$site_name			=	AwbXmlInterface::$title;
+		$site_slug 			=	AwbXmlInterface::$address;
+		$site_theme 		=	AwbXmlInterface::$theme;
+		$site_url 			=	'http://iris.scanmine.com/'.AwbXmlInterface::$address;
+		$site_language  	=  	AwbXmlInterface::$language;
+
+
+		$sql  =	"INSERT INTO wp_aw_blog_sites ( `site_name`,`site_slug`,`site_theme`,`site_url`, `site_language`) values( '$site_name', '$site_slug', '$site_theme', '$site_url', '$site_language')";
+		$wpdb->query( $sql );
+
+		$message  = "Success: Updated `Aw Blogger List` Successfully.";
+		AwbLog::writeLog($message);
+		return true;
+	}
+
 }/* class ends here */
 
 ?>
