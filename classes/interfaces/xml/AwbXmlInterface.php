@@ -3,6 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class AwbXmlInterface {
 
+	public static $reader;
+
 	public static $address;
 	public static $title;
 	public static $email;
@@ -41,6 +43,7 @@ class AwbXmlInterface {
 			}
 			return false;
 		} else {
+			self::$reader = $reader;
 			$message = "Success: XML parsed Successfully.";
 			AwbLog::writeLog($message);
 			return true;
@@ -102,6 +105,57 @@ class AwbXmlInterface {
 		}
 		return $languageReturn;
 	}
+
+	/* Retuns the pages form  XML */
+	/* these pagas will be stroed as categories. */
+	public static function getPages() {
+
+		$returnPages = array();
+
+		$pages 	= self::getArrayFormXMLObject( 'pages' );
+
+		if (isset($pages['title'])) {
+			$returnPages[] =$pages['title'];
+		}else{
+			foreach ($pages as $page ) {
+				$returnPages[] =$page['title'];
+			}
+		}
+		return $returnPages;
+
+	}
+
+	/* Retuns the Feeds form  XML */
+	/* these pagas will be stroed as Links. */
+	public static function getFeeds() {
+		$returnFeeds = array();
+		$feeds 	= self::getArrayFormXMLObject( 'feeds' );
+
+		if (!is_array($feeds)) {
+			$returnFeeds[] = trim($feeds);
+		}else{
+			foreach ($feeds as $feed ) {
+				$returnFeeds[] = trim($feed);
+			}
+		}
+		return $returnFeeds;
+	}
+
+
+	public static function getArrayFormXMLObject( $itemTitle = '' ){
+		if( $itemTitle == '' ){
+			return false;
+		}
+
+		$xmlObject = self::$reader;
+		$options_data   = $xmlObject->getProperty($itemTitle);
+		$multi_array    = json_decode( json_encode($options_data) , 1);
+
+		$items = array_values($multi_array)[0];
+
+		return $items;
+	}
+
 
 }/* class ends here */
 

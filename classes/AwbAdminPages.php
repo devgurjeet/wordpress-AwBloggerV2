@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class AwbAdminPages {
@@ -68,6 +71,16 @@ class AwbAdminPages {
 			$reader  			= 	new AwbConfigReader( $site_config );
 			$isConfigXMLValid 	= AwbXmlInterface::checkConfigXML($reader);
 
+			// $pages = AwbXmlInterface::getPages();
+
+
+			// echo "<pre>";
+			// print_r( $pages );
+			// echo "</pre>";
+
+			// echo "<br />Break Point<br />";
+			// die();
+
 			if( $isConfigXMLValid ) {
 				AwbXmlInterface::readConfigXML($reader);
 
@@ -99,6 +112,9 @@ class AwbAdminPages {
 
 								/*udpate AW Blogger List */
 								AwbDbInterface::updateAwBloggerList();
+
+								/*Insert Categories in destination blog.*/
+								AwbDbInterface::insertCategories();
 
 								echo '<h2>Site created Successfully:  <a href="'.$siteUrl.'" target="_blank"> Click here to check site. </a></h2>';
 

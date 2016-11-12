@@ -1,4 +1,5 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class AwbWpInterface {
@@ -57,7 +58,7 @@ class AwbWpInterface {
 		$destFiles   = $dest."/";
 
 		// $command = "cp -r $sourceFiles $destFiles";
-		$command = "rsync -a  $sourceFiles $destFiles --exclude='*.zip*' --exclude='*.sql' --exclude='wp-content/uploads/*' --exclude='*.tar*' --exclude='*.php-*' --exclude='*.css-*' --exclude='*.js-*' --exclude='*.log*'";
+		$command = "rsync -a  $sourceFiles $destFiles --exclude='*.zip' --exclude='*.sql*' --exclude='wp-content/uploads/*' --exclude='*.tar*' --exclude='*.php-*' --exclude='*.css-*' --exclude='*.js-*' --exclude='*.log*'";
 		shell_exec($command);
 
 		$commandPer 	=	"chown -R artworld:testing $destFiles";

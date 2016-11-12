@@ -143,9 +143,17 @@ class AwbDbInterface {
 	        	mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab WHERE $sourceDB.$tab.post_type != 'attachment' AND $sourceDB.$tab.post_type != 'post' AND $sourceDB.$tab.post_type != 'revision'");
 	        }elseif ( $tab == 'wp_postmeta') {
 				mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab WHERE $sourceDB.$tab.meta_key != 'sm:meta-title' AND $sourceDB.$tab.meta_key != 'sm:meta-description' AND $sourceDB.$tab.meta_key != 'sm:meta-image' AND $sourceDB.$tab.meta_key != 'custompost' AND $sourceDB.$tab.meta_key != 'enclosure1' AND $sourceDB.$tab.meta_key != 'metablogcategory' AND $sourceDB.$tab.meta_key != 'syndication_permalink' AND $sourceDB.$tab.meta_key != '_thumbnail_id' AND $sourceDB.$tab.meta_key != 'sm:block' AND $sourceDB.$tab.meta_key != 'enclosure' AND $sourceDB.$tab.meta_key != '_edit_last' AND $sourceDB.$tab.meta_key != '_edit_lock' AND $sourceDB.$tab.meta_key != '_encloseme' $sourceDB.$tab.meta_key != '_pingme' AND $sourceDB.$tab.meta_key != '_wp_attached_file' AND $sourceDB.$tab.meta_key != '_wp_attachment_backup_sizes' AND $sourceDB.$tab.meta_key != '_wp_attachment_context'");
-	        }else{
+
+	        }elseif ( $tab == 'wp_term_relationships') {
+				mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab WHERE object_id IN ( SELECT ID FROM $destinationDB.wp_posts )");
+	        }
+	        else{
 				mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab");
 	        }
+
+	        // Delete categories.
+	        $sql = "DELETE $destinationDB.`wp_terms`, $destinationDB.`wp_term_taxonomy` FROM $destinationDB.`wp_terms` INNER JOIN $destinationDB.`wp_term_taxonomy` ON $destinationDB.`wp_terms`.`term_id` = $destinationDB.`wp_term_taxonomy`.`term_id` WHERE $destinationDB.`wp_term_taxonomy`.`taxonomy` = 'category'";
+	        mysqli_query( $connect, $sql );
 
 	        // $message[] 	= 	"Table: [ " . $line[0] . " ] Done.";
 	        $message  = "Table: [ " . $tab . " ] Done.";
@@ -289,7 +297,7 @@ class AwbDbInterface {
 	}
 
 
-	function updateAwBloggerList( $args ){
+	function updateAwBloggerList( ){
 		global $wpdb;
 
 		$address 		= AwbXmlInterface::$address;
@@ -305,8 +313,9 @@ class AwbDbInterface {
 		$site_name			=	AwbXmlInterface::$title;
 		$site_slug 			=	AwbXmlInterface::$address;
 		$site_theme 		=	AwbXmlInterface::$theme;
-		$site_url 			=	'http://iris.scanmine.com/'.AwbXmlInterface::$address;
 		$site_language  	=  	AwbXmlInterface::$language;
+
+		$site_url 			=	AwbWpInterface::getSiteUrl();
 
 
 		$sql  =	"INSERT INTO wp_aw_blog_sites ( `site_name`,`site_slug`,`site_theme`,`site_url`, `site_language`) values( '$site_name', '$site_slug', '$site_theme', '$site_url', '$site_language')";
@@ -316,6 +325,57 @@ class AwbDbInterface {
 		AwbLog::writeLog($message);
 		return true;
 	}
+
+	public static function insertCategories( ){
+		$wpdb 		= AwbDbInterface::$destinationWpdb;
+		$categories = AwbXmlInterface::getPages();
+
+		$message  = "Insert: categories Initiated.";
+		AwbLog::writeLog($message);
+
+		foreach ( $categories as $category ) {
+			$wpdb->insert(
+				'wp_terms',
+				array(
+					'name' => $category,
+					'slug' => sanitize_title($category),
+				),
+				array(
+					'%s',
+					'%s'
+				)
+			);
+			$term_id = $wpdb->insert_id;
+
+
+			$wpdb->insert(
+				'wp_term_taxonomy',
+				array(
+					'term_id'			=>	$term_id,
+					'taxonomy'			=>	'category',
+					'description'		=>	'',
+					'parent'			=>	0,
+					'count'				=>	0,
+				),
+				array(
+					'%s',
+					'%s',
+					'%s',
+					'%d',
+					'%d'
+				)
+			);
+
+			$message  = "Inserted: `$category`.";
+			AwbLog::writeLog($message);
+
+		}
+
+		$message  = "Insert: categories inserted successfully.";
+		AwbLog::writeLog($message);
+		return false;
+	}
+
 
 }/* class ends here */
 
