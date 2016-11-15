@@ -1,7 +1,4 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class AwbAdminPages {
@@ -72,7 +69,20 @@ class AwbAdminPages {
 			$isConfigXMLValid 	= AwbXmlInterface::checkConfigXML($reader);
 
 			// $pages = AwbXmlInterface::getPages();
+			// $feeds = AwbXmlInterface::getFeeds();
 
+			// foreach ($feeds as $feed) {
+			// 	$feedData = AwbRssInterface::getFeedDetails($feed);
+
+			// 	echo "<pre>";
+			// 		print_r( $feedData );
+			// 	echo "</pre>";
+			// }
+
+
+
+
+			// die;
 
 			// echo "<pre>";
 			// print_r( $pages );
@@ -115,6 +125,15 @@ class AwbAdminPages {
 
 								/*Insert Categories in destination blog.*/
 								AwbDbInterface::insertCategories();
+
+								/*Insert Feeds in destination blog.*/
+								AwbDbInterface::insertFeeds();
+
+								/*Insert Top Menu Items.*/
+								AwbDbInterface::createTopMenu();
+
+								/*Insert footer Menu Items.*/
+								AwbDbInterface::createFooterMenu();
 
 								echo '<h2>Site created Successfully:  <a href="'.$siteUrl.'" target="_blank"> Click here to check site. </a></h2>';
 

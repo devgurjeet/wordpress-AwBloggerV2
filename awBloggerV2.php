@@ -22,7 +22,7 @@ include('classes/interfaces/db/AwbDbInterface.php');
 include('classes/interfaces/xml/AwbConfigReader.php');
 include('classes/interfaces/xml/AwbXmlInterface.php');
 include('classes/interfaces/wp/AwbWpInterface.php');
-
+include('classes/interfaces/rss/AwbRssInterface.php');
 
 include('classes/AwbAdminPages.php');
 
