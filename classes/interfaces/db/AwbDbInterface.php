@@ -1,10 +1,15 @@
 <?php
+
+// error_reporting(E_ALL);
+// ini_set('display_errors', 1);
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class AwbDbInterface {
 
 	public static $sourceWpdb;
 	public static $destinationWpdb;
+	public static $categories;
+
 	/**
 	 * [getBloglist: create and return list of all blogs]
 	 * @return String: list of all blogs in HTML Format.
@@ -149,7 +154,15 @@ class AwbDbInterface {
 	        }elseif ($tab == 'wp_links') {
 	        	//No content saved for wp_links
 	        	// mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab");
-	        }else{
+	        }elseif ($tab == 'category_post_index') {
+	        	//No content saved for wp_links
+	        	// mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab");
+	        }
+	        // elseif ($tab == 'wp_users') {
+	        // 	$sql = "INSERT INTO $destinationDB.$tabSELECT * FROM $sourceDB.$tab WHERE (`user_login` = 'scanmine' OR `user_login` = 'aiko' OR `user_login` = 'stewiks') ";
+	        // 	mysqli_query($connect,$sql);
+	        // }
+	        else{
 				mysqli_query($connect, "INSERT INTO $destinationDB.$tab SELECT * FROM $sourceDB.$tab");
 	        }
 
@@ -332,6 +345,8 @@ class AwbDbInterface {
 		$wpdb 		= AwbDbInterface::$destinationWpdb;
 		$categories = AwbXmlInterface::getPages();
 
+		$categoryItems = array();
+
 		$message  = "Insert: categories Initiated.";
 		AwbLog::writeLog($message);
 
@@ -368,10 +383,15 @@ class AwbDbInterface {
 				)
 			);
 
+			$categoryItems[$category] = $term_id;
+
 			$message  = "Inserted: `$category`.";
 			AwbLog::writeLog($message);
 
 		}
+
+		/*update categories. */
+		self::$categories = $categoryItems;
 
 		$message  = "Insert: categories inserted successfully.";
 		AwbLog::writeLog($message);
@@ -696,8 +716,308 @@ class AwbDbInterface {
 
 		$ID = $data['nav_menu_locations'][$location];
 		return $ID;
+	}
+
+
+	/*====================== section to insert posts ======================*/
+	public static function setupPosts( ){
+		$feeds = AwbXmlInterface::getFeeds();
+
+		$message  = "INSERT: Addding Posts Started.";
+		AwbLog::writeLog($message);
+
+		foreach ($feeds as $feed) {
+
+			self::addPosts( $feed );
+		}
+
+		$message  = "INSERT: Posts Added Successfully.";
+		AwbLog::writeLog($message);
+
+		self:: updateCategoryIndex();
+	}
+
+	public static function addPosts( $feed ){
+
+		$rssPosts = AwbRssInterface::getPosts($feed);
+		foreach ($rssPosts as $post ) {
+			$postID = self::insertPost( $post );
+
+			if($postID ){
+				//update category.
+				$term_id = self::$categories[$post['category']];
+				self::insertCategory( $postID, $term_id );
+
+				// add post Attatment.
+				$postmeta = array();
+
+				if( !empty($post['enclosure'])){
+					$thumbnailid = self::insertAttachment($postID, $post );
+					if( $thumbnailid ){
+						$postmeta['_thumbnail_id'] 	= $thumbnailid;
+						$postmeta['enclosure'] 		= $post['enclosure'];
+					}
+				}
+
+				// add post Meta.
+				$postmeta["sm:block"] 				=  	$post['smblock'];
+				$postmeta["sm:meta-title"] 			=  	$post['smmetatitle'];
+				$postmeta["sm:meta-description"] 	= 	$post['smmetadesc'];
+				$postmeta["sm:meta-image"] 			=	$post['smmetaimage'];
+
+				if(!empty($post['sourcelink'])){
+					$postmeta["syndication_permalink"] = 	$post['sourcelink'];
+				}
+				if(!empty($post['sourcelink'])){
+					$postmeta["syndication_permalink"] = 	$post['sourcelink'];
+				}
+
+				self::insertPostMeta( $postID, $postmeta);
+			}
+		}
+	}
+
+	public static function insertPost( $post ){
+
+		$wpdb 	= AwbDbInterface::$destinationWpdb;
+
+		$wpdb->insert(
+			'wp_posts',
+			array(
+				'post_author' 			=> $post['post_author'],
+				'post_date'				=> $post['post_date'],
+				'post_date_gmt'			=> $post['post_date'],
+				'post_content'			=> $post['description'],
+				'post_title'			=> $post['post_title'],
+				'post_name'				=> $post['post_name'],
+				'post_excerpt'			=> $post['excerpt'],
+				'post_status'			=> 'publish',
+				'comment_status'		=> 'closed',
+				'ping_status'			=> 'closed',
+				'post_password'			=> '',
+				'to_ping'				=> '',
+				'pinged'				=> '',
+				'post_modified'			=> '',
+				'post_modified_gmt'		=> '',
+				'post_content_filtered'	=> '',
+				'post_parent'			=> 0,
+				'post_type'				=> 'post',
+				'post_mime_type'		=> '',
+				'comment_count' 		=> 0,
+				'menu_order'			=> '',
+				'sm_block'				=> $post['smblock'],
+			),
+			array(
+				'%d',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%s',
+				'%d',
+				'%s',
+				'%s',
+				'%d',
+				'%d',
+				'%s',
+			)
+		);
+
+		$lastID = $wpdb->insert_id;
+
+
+		$guid = AwbWpInterface::getSiteUrl()."?".$lastID;
+
+		$wpdb->update(
+			'wp_posts',
+			array(
+				'guid'		=> $guid,
+				'sm_block'	=> $post['smblock'],
+			),
+			array( 'ID' => $lastID ),
+			array(
+				'%s',
+				'%s'
+			),
+			array( '%d' )
+		);
+
+		return  $lastID;
 
 	}
+
+	public static function insertPostMeta( $postID, $postmeta) {
+
+		$wpdb 	= AwbDbInterface::$destinationWpdb;
+
+		foreach ( $postmeta as $meta_key => $meta_value) {
+			$wpdb->insert(
+				'wp_postmeta',
+				array(
+					'post_id' 		=> $postID,
+					'meta_key' 		=> $meta_key,
+					'meta_value' 	=> $meta_value,
+				),
+				array(
+					'%d',
+					'%s',
+					'%s',
+				)
+			);
+		}
+
+	}
+
+	public static function insertAttachment( $postID, $post ) {
+		$wpdb 	= AwbDbInterface::$destinationWpdb;
+
+		if(!empty($post['enclosure'])){
+			$enclosure   = $post['enclosure'];
+			$source 	 = $enclosure;
+			$destination = AwbWpInterface::$destination."/wp-content/uploads/".basename($enclosure)."";
+
+			// if(!is_dir($destination)){
+			// 	mkdir(dirname($destination), 0775, true);
+			// }
+			@copy($source,$destination);
+			$postmetaarray["enclosure"] = $enclosure;
+			//==Insert Image===//
+			$imageurlguid 	= AwbWpInterface::$destination."/wp-content/uploads/".basename($enclosure)."";
+			$posttitle 		= preg_replace('/\.[^.]+$/', '', basename($enclosure));
+			$postname 		= sanitize_title($posttitle);
+
+			$wpdb->insert(
+			'wp_posts',
+				array(
+					'post_author'  		=> $post_author,
+					'post_date'  		=> $post['post_date'],
+					'post_date_gmt'   	=> $post['post_date'],
+					'post_title'  		=> $posttitle,
+					'post_status'  		=> "inherit",
+					'comment_status'  	=> "open",
+					'ping_status'  		=> "open",
+					'post_name'  		=> $postname,
+					'post_modified'  	=> $post['post_date'],
+					'post_modified_gmt' => $post['post_date'],
+					'post_parent'  		=> $postID,
+					'guid'  			=> $imageurlguid,
+					'post_type'  		=> "attachment",
+					'post_mime_type'  	=> $post['post_mimie_type']
+
+				),
+				array(
+					'%d',
+					'%s',
+					'%s',
+					'%s',
+					'%s',
+					'%s',
+					'%s',
+					'%s',
+					'%s',
+					'%d',
+					'%s',
+					'%s',
+					'%s',
+					'%s',
+				)
+			);
+
+			$thumbnailid = $wpdb->insert_id;
+
+			if(!empty($enclosure) && $thumbnailid != 0 ){
+				$wpdb->insert(
+					'wp_postmeta',
+					array(
+						'post_id'		=>	$thumbnailid,
+						'meta_key'		=> '_wp_attached_file',
+						'meta_value' 	=> basename($enclosure),
+					),
+					array(
+						'%d',
+						'%s',
+						'%s',
+					)
+				);
+
+			}
+
+			return $thumbnailid;
+		}else{
+
+			return false;
+		}
+	}
+
+	public static function insertCategory( $object_id, $term_id ){
+		$wpdb 	= AwbDbInterface::$destinationWpdb;
+		$sql 	= "SELECT *
+					FROM `wp_term_taxonomy`
+					WHERE 	`term_id` = $term_id LIMIT 0,1";
+
+		$result = $wpdb->get_row( $sql );
+		$count  =  $result->count;
+
+		$count  =  $count + 1;
+
+		$wpdb->update(
+			'wp_term_taxonomy',
+			array(
+				'count' => $count,
+			),
+			array( 'term_id' => $term_id ),
+			array(
+				'%d',
+			),
+			array( '%d' )
+		);
+
+		$wpdb->insert(
+			'wp_term_relationships',
+			array(
+				'object_id' 		=> $object_id,
+				'term_taxonomy_id' 	=> $term_id,
+				'term_order' 		=> 0,
+			),
+			array(
+				'%d',
+				'%d',
+				'%d',
+			)
+		);
+
+		return true;
+	}
+
+
+	public static function updateCategoryIndex(){
+		$wpdb 	= AwbDbInterface::$destinationWpdb;
+
+		$categories = self::$categories;
+		foreach ($categories as $key => $value) {
+			$sql = "INSERT INTO `category_post_index`(`post_ID`, `post_category`)
+				SELECT ID, '$key'
+					FROM wp_posts WHERE sm_block LIKE '%$key%'
+					GROUP BY post_title
+					ORDER BY ID DESC LIMIT 0,100;";
+
+			$wpdb->query($sql);
+		}
+
+		$message  = "INSERT: `category_post_index` updated Successfully.";
+		AwbLog::writeLog($message);
+		return true;
+	}
+	/*=====================================================================*/
 
 }/* class ends here */
 

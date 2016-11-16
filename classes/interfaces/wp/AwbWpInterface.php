@@ -112,6 +112,33 @@ class AwbWpInterface {
 		return true;
 	}
 
+
+	//** Function to Add .Htaccess **//
+	public static function addHTACCESS(){
+
+		$filenameSource 		= '/var/www/html/templates/htaccess/.htaccess';
+
+		$filenameDestination 	= self::$destination.'/.htaccess';
+
+		$blogName  				=	str_replace("/var/www/html/", "", self::$destination);
+
+		copy($filenameSource, $filenameDestination);
+
+		chmod($filenameDestination , 0664);
+
+		$content 				= file_get_contents( $filenameDestination );
+
+		$newContent 			= str_replace("BLOGNAME", $blogName, $content );
+
+		file_put_contents($filenameDestination, $newContent);
+
+		$message  = "Success: `.htaccess` Added Successfully.";
+		AwbLog::writeLog($message);
+		return true;
+
+	}
+
+
 }/* class ends here */
 
 ?>

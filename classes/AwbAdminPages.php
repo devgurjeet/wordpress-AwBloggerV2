@@ -68,18 +68,15 @@ class AwbAdminPages {
 			$reader  			= 	new AwbConfigReader( $site_config );
 			$isConfigXMLValid 	= AwbXmlInterface::checkConfigXML($reader);
 
-			// $pages = AwbXmlInterface::getPages();
+			// // $pages = AwbXmlInterface::getPages();
 			// $feeds = AwbXmlInterface::getFeeds();
 
 			// foreach ($feeds as $feed) {
-			// 	$feedData = AwbRssInterface::getFeedDetails($feed);
-
-			// 	echo "<pre>";
-			// 		print_r( $feedData );
-			// 	echo "</pre>";
+			// 	// $feedData = AwbRssInterface::getFeedDetails($feed);
+			// 	AwbRssInterface::getPosts($feed);
 			// }
 
-
+			// die;
 
 
 			// die;
@@ -120,8 +117,13 @@ class AwbAdminPages {
 								AwbDbInterface::updateWpOptions();
 								$siteUrl = AwbWpInterface::getSiteUrl();
 
+								/*add Htacess */
+								AwbWpInterface::addHTACCESS();
+
+
 								/*udpate AW Blogger List */
 								AwbDbInterface::updateAwBloggerList();
+
 
 								/*Insert Categories in destination blog.*/
 								AwbDbInterface::insertCategories();
@@ -135,7 +137,12 @@ class AwbAdminPages {
 								/*Insert footer Menu Items.*/
 								AwbDbInterface::createFooterMenu();
 
-								echo '<h2>Site created Successfully:  <a href="'.$siteUrl.'" target="_blank"> Click here to check site. </a></h2>';
+								/*Update post in Database*/
+								AwbDbInterface::setupPosts();
+
+								echo '<h2>
+										<span>Site created Successfully:</span> <a href="'.$siteUrl.'" target="_blank"> Click here to check site.</a>
+									</h2>';
 
 							} else {
 								echo "<p>Database Not Cloned!</p>";
