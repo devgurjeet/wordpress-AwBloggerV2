@@ -52,6 +52,10 @@ class AwbAdminPages {
 		$log_fileName = "awb_".date("Y_m_d_H_i_s").".txt";
 		$creation_log =  AwbLog::SetLogFilename( $log_fileName );
 
+
+		/*start time */
+		$start = microtime(true);
+
 		echo "<h1>Blog Creation log.</h1>";
 		AwbLog::startLogging();
 
@@ -67,26 +71,6 @@ class AwbAdminPages {
 			/* XML Config Reader Valid */
 			$reader  			= 	new AwbConfigReader( $site_config );
 			$isConfigXMLValid 	= AwbXmlInterface::checkConfigXML($reader);
-
-			// // $pages = AwbXmlInterface::getPages();
-			// $feeds = AwbXmlInterface::getFeeds();
-
-			// foreach ($feeds as $feed) {
-			// 	// $feedData = AwbRssInterface::getFeedDetails($feed);
-			// 	AwbRssInterface::getPosts($feed);
-			// }
-
-			// die;
-
-
-			// die;
-
-			// echo "<pre>";
-			// print_r( $pages );
-			// echo "</pre>";
-
-			// echo "<br />Break Point<br />";
-			// die();
 
 			if( $isConfigXMLValid ) {
 				AwbXmlInterface::readConfigXML($reader);
@@ -139,6 +123,21 @@ class AwbAdminPages {
 
 								/*Update post in Database*/
 								AwbDbInterface::setupPosts();
+
+
+								/*Add logging stats */
+								$total 			= microtime(true) - $start;
+								// $totalTime 		= $total / 1000;
+								$totalTimeInSec = round($total, 2);
+
+								$args['site_name']  		=	AwbXmlInterface::$title;
+								$args['site_url']  			=	$siteUrl;
+								$args['total_time']  		=	$totalTimeInSec."ms";
+								$args['total_posts']  		=	AwbDbInterface::$total_posts;
+								$args['total_categories']  	=	AwbDbInterface::$total_categories;
+								$args['total_feeds'] 		=	AwbDbInterface::$total_feeds;
+
+								AwbLog::addLoggingStats($args);
 
 								echo '<h2>
 										<span>Site created Successfully:</span> <a href="'.$siteUrl.'" target="_blank"> Click here to check site.</a>

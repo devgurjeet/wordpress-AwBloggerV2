@@ -10,6 +10,11 @@ class AwbDbInterface {
 	public static $destinationWpdb;
 	public static $categories;
 
+	/*stats variables */
+	public static $total_posts = 0;
+	public static $total_categories;
+	public static $total_feeds;
+
 	/**
 	 * [getBloglist: create and return list of all blogs]
 	 * @return String: list of all blogs in HTML Format.
@@ -23,7 +28,7 @@ class AwbDbInterface {
 		$html  = '';
 		$html .= "<select name='siteTemplate' id='directories'>";
 		foreach ( $results as $directory ) {
-			$html .= "<option value='".$directory->site_name."'>".$directory->site_name." ( ".$directory->site_url." )</option>";
+			$html .= "<option value='".$directory->site_slug."'>".$directory->site_name." ( ".$directory->site_url." )</option>";
 		}
 		$html .= "</select>";
 
@@ -391,7 +396,8 @@ class AwbDbInterface {
 		}
 
 		/*update categories. */
-		self::$categories = $categoryItems;
+		self::$categories 		= $categoryItems;
+		self::$total_categories = count($categoryItems);
 
 		$message  = "Insert: categories inserted successfully.";
 		AwbLog::writeLog($message);
@@ -401,6 +407,9 @@ class AwbDbInterface {
 	public static function insertFeeds( ){
 		$wpdb 	= AwbDbInterface::$destinationWpdb;
 		$feeds 	= AwbXmlInterface::getFeeds();
+
+		/* Update Feeds varibles */
+		self::$total_feeds = count($feeds);
 
 		$message  = "Insert: Feeds Initiated.";
 		AwbLog::writeLog($message);
@@ -727,7 +736,8 @@ class AwbDbInterface {
 		AwbLog::writeLog($message);
 
 		foreach ($feeds as $feed) {
-
+			$message  = "INSERT: Adding posts of `$feed`.";
+			AwbLog::writeLog($message);
 			self::addPosts( $feed );
 		}
 
@@ -741,14 +751,25 @@ class AwbDbInterface {
 
 		$rssPosts = AwbRssInterface::getPosts($feed);
 		foreach ($rssPosts as $post ) {
+
+			$message  = "-------------------------------------------------------------------------------------";
+			AwbLog::writeLog($message);
+
+			$message  = "Insert: Post Insert `".$post['post_title']."` Initiated.";
+			AwbLog::writeLog($message);
+
 			$postID = self::insertPost( $post );
 
 			if($postID ){
+
+				$message  = "Insert: Post Inserted in database: `$postID`";
+				AwbLog::writeLog($message);
+
 				//update category.
 				$term_id = self::$categories[$post['category']];
 				self::insertCategory( $postID, $term_id );
 
-				// add post Attatment.
+				// add post Attachment.
 				$postmeta = array();
 
 				if( !empty($post['enclosure'])){
@@ -764,6 +785,7 @@ class AwbDbInterface {
 				$postmeta["sm:meta-title"] 			=  	$post['smmetatitle'];
 				$postmeta["sm:meta-description"] 	= 	$post['smmetadesc'];
 				$postmeta["sm:meta-image"] 			=	$post['smmetaimage'];
+				$postmeta["sm:guid"] 				=	$post['smguid'];
 
 				if(!empty($post['sourcelink'])){
 					$postmeta["syndication_permalink"] = 	$post['sourcelink'];
@@ -774,10 +796,18 @@ class AwbDbInterface {
 
 				self::insertPostMeta( $postID, $postmeta);
 			}
+
+			$message  = "Insert: Post Insert Completed successfully.";
+			AwbLog::writeLog($message);
+
+			$message  = "-------------------------------------------------------------------------------------";
+			AwbLog::writeLog($message);
 		}
 	}
 
 	public static function insertPost( $post ){
+
+		self::$total_posts = self::$total_posts + 1;
 
 		$wpdb 	= AwbDbInterface::$destinationWpdb;
 
@@ -850,7 +880,6 @@ class AwbDbInterface {
 			),
 			array( '%d' )
 		);
-
 		return  $lastID;
 
 	}
@@ -858,6 +887,9 @@ class AwbDbInterface {
 	public static function insertPostMeta( $postID, $postmeta) {
 
 		$wpdb 	= AwbDbInterface::$destinationWpdb;
+
+		$message  = "Update: Adding Post Meta Initiated.";
+		AwbLog::writeLog($message);
 
 		foreach ( $postmeta as $meta_key => $meta_value) {
 			$wpdb->insert(
@@ -875,12 +907,19 @@ class AwbDbInterface {
 			);
 		}
 
+		$message  = "Update: Adding Post Meta Completed.";
+		AwbLog::writeLog($message);
+
 	}
 
 	public static function insertAttachment( $postID, $post ) {
-		$wpdb 	= AwbDbInterface::$destinationWpdb;
 
+		$wpdb 	= AwbDbInterface::$destinationWpdb;
 		if(!empty($post['enclosure'])){
+
+			$message  = "Update: Adding Featured Image Initiated.";
+			AwbLog::writeLog($message);
+
 			$enclosure   = $post['enclosure'];
 			$source 	 = $enclosure;
 			$destination = AwbWpInterface::$destination."/wp-content/uploads/".basename($enclosure)."";
@@ -888,7 +927,14 @@ class AwbDbInterface {
 			// if(!is_dir($destination)){
 			// 	mkdir(dirname($destination), 0775, true);
 			// }
+			$message  = "Copy: Copying Featured Image to Uploads Initiated: [`$enclosure`].";
+			AwbLog::writeLog($message);
+
 			@copy($source,$destination);
+
+			$message  = "Copy: Featured Image Uploaded Successfully.";
+			AwbLog::writeLog($message);
+
 			$postmetaarray["enclosure"] = $enclosure;
 			//==Insert Image===//
 			$imageurlguid 	= AwbWpInterface::$destination."/wp-content/uploads/".basename($enclosure)."";
@@ -951,14 +997,20 @@ class AwbDbInterface {
 
 			}
 
+			$message  = "Update: Adding Featured Image Completed successfully.";
+			AwbLog::writeLog($message);
+
 			return $thumbnailid;
 		}else{
 
+			$message  = "Update: No Featured Image.";
+			AwbLog::writeLog($message);
 			return false;
 		}
 	}
 
 	public static function insertCategory( $object_id, $term_id ){
+
 		$wpdb 	= AwbDbInterface::$destinationWpdb;
 		$sql 	= "SELECT *
 					FROM `wp_term_taxonomy`
@@ -994,6 +1046,9 @@ class AwbDbInterface {
 				'%d',
 			)
 		);
+
+		$message  = "Updated: Post added in category.";
+		AwbLog::writeLog($message);
 
 		return true;
 	}

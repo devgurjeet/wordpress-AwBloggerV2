@@ -69,6 +69,7 @@ class AwbRssInterface {
 			$postItem['enclosure'] 			= 	$URL;
 			$postItem['post_mimie_type'] 	= 	$imagetype;
 			$postItem['sourcelink'] 		= 	$node->getElementsByTagName('link')->item(0)->nodeValue;
+			$postItem['smguid'] 			= 	$node->getElementsByTagName('guid')->item(0)->nodeValue;
 
 
 			$rssPosts[] = $postItem;
