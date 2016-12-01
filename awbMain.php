@@ -5,18 +5,8 @@ class AwBlogger {
 
     //** Constructor **//
     function __construct() {
-        //** Action to load Assets Css **//
-        // add_action( 'wp_enqueue_scripts',  array(&$this, 'loadAssectCss') );
-
-        // add_action( 'admin_enqueue_scripts',  array(&$this, 'loadAdminAssects') );
-
-        /*ajax call for check source blog*/
-        // add_action('wp_ajax_awb_ajax_rating', array('AwbAjax', 'check_source_blog'));
-
         //** Register menu. **//
         add_action('admin_menu', array(&$this, 'register_plugin_menu') );
-
-
     }
 
     function loadAssectCss(){
@@ -42,11 +32,8 @@ class AwBlogger {
 
     //** Register menu Item. **//
     function register_plugin_menu(){
-            // add_menu_page( 'Aw Blogger V2', 'Aw Blogger V2', 'manage_options', 'awbloggerv2', array('AwstAdminPages', 'plugin_homepage'), 'dashicons-share', 6 );
             add_menu_page( 'Aw Blogger V2', 'Aw Blogger V2', 'manage_options', 'awbloggerv2', array('AwbAdminPages', 'create_blog'), 'dashicons-rss', 8 );
-            // add_submenu_page('', 'Aw Social Tabs | Likes', 'Likes', 'manage_options','awst_likes', array('AwstAdminPages', 'awst_likes'));
-            // add_submenu_page('', 'Aw Social Tabs | Ratings', 'Ratings', 'manage_options','awst_ratings', array('AwstAdminPages', 'awst_ratings'));
-            // add_submenu_page('', 'Aw Social Tabs | Review', 'Review', 'manage_options','awst_review', array('AwstAdminPages', 'awst_review'));
+            add_submenu_page('awbloggerv2', 'Aw Blogger V2 | Blog Creator', 'Aw Blogger Domain', 'manage_options','awbloggerv2Domain', array('AwbAdminPages', 'createBlogDomain'));
     }
 
 }/*class ends here*/

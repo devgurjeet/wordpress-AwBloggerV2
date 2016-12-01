@@ -8,7 +8,7 @@ class AwbAdminPages {
     */
     public static function create_blog() {
     	if( isset($_POST['action']) ){
-    		$result = AwbAdminPages::processCreateSiteForm($_POST);
+    		$result = AwbFormProcessor::processCreateSiteFormNormal($_POST);
     		if( $result ) {
     			echo "<h1>Site Created Successfully!";
     		}
@@ -28,10 +28,10 @@ class AwbAdminPages {
 								</div>
 							</div>
 							<p class="submit submt_p">
-								<input type="submit" value="Add Site" class="submt_btn button button-primary" id="add-aw-blog-site" name="add-aw-blog-site">
 								<input type="hidden" name="action" value="add_site" />
-								<input type="hidden" name="site_hurl" value="" />
-								<input type="hidden" name="site-s-slug" value="" />
+							  	<input type="hidden" name="mode" value="normal" />
+
+							  	<input type="submit" value="Add Site" class="submt_btn button button-primary" id="add-aw-blog-site">
 							</p>
 						</form>
 					</div>';
@@ -39,132 +39,56 @@ class AwbAdminPages {
 		echo $html;
     }
 
-    /**
-     * [processCreateSiteForm description]
-     * @param  Array $formData
-     * @return boolean
-     */
-    public static function processCreateSiteForm( $formData ) {
 
-    	$siteTemplate = $formData['siteTemplate'];
-		$site_config  = $formData['site_config'];
+    public static function createBlogDomain(){
 
-		$log_fileName = "awb_".date("Y_m_d_H_i_s").".txt";
-		$creation_log =  AwbLog::SetLogFilename( $log_fileName );
+    	if( isset($_POST['action']) ){
+    		$result = AwbFormProcessor::processCreateSiteFormAdvanced($_POST);
+    		if( $result ) {
+    			echo "<h1>Site Created Successfully!";
+    		}
+    		die();
+    	}
 
+    	$html	= 	'<div class="wrap">
+						<h2 id="add-new-feed-site">Add New Feed Based Sites With Domain</h2>';
+		$html	.= 		'<form enctype="multipart/form-data" action="" method="post">';
+		$html   .= 			'<div class="main_dom">
+						<div class="field_row">';
+		$html	.= 			AwbDbInterface::getBloglist();
+		$html   .=		'</div>
+						<div class="field_row">
+							<textarea  name="site_config" id="site_config" placeholder="Enter Config Url."></textarea>
+							<p>Note: Enter Single Congif files url.</p>
+						</div>
+					</div>';
 
-		/*start time */
-		$start = microtime(true);
+		$html   .=	'<div class="main_dom">
+						<div class="field_row">
+							<input type="text" name="domain_name_url" id="domain_name_url" class="domain_name" placeholder="Domain URL">
+							<span class="error_msg_domain_name_url"> Please Enter Domain Name. </span>
+						</div>
+						<div class="field_row">
+							<input type="text" name="dom_alias" id="dom_alias" class="domain_name" placeholder="Domain Alias">
+							<span class="error_msg_domain_alias"> Please Enter Domain ALias. </span>
+						</div>
+						<div class="field_row">
+							<input type="text" name="config_name" id="config_name" class="domain_name" placeholder="Config File Name">
+							<span class="error_msg_config_name"> Please Enter Config File Name. </span>
+						</div>
+					</div>
 
-		echo "<h1>Blog Creation log.</h1>";
-		AwbLog::startLogging();
+					  <p class="submit submt_p">
+					  	<input type="hidden" name="action" value="add_site" />
+					  	<input type="hidden" name="mode" value="advanced" />
 
-		$message = "Source Blogname: ".$siteTemplate;
-		AwbLog::writeLog($message);
+					  	<input type="submit" value="Add Site" class="submt_btn button button-primary" id="add-aw-blog-site">
 
-		$message = "Config URL: ".$site_config;
-		AwbLog::writeLog($message);
+					  </p>
+					  </form>
+					</div>';
 
-		$sourceBlog = AwbAdminPages::checkSourceBlog( $siteTemplate );
-
-		if( $sourceBlog  ) {
-			/* XML Config Reader Valid */
-			$reader  			= 	new AwbConfigReader( $site_config );
-			$isConfigXMLValid 	= AwbXmlInterface::checkConfigXML($reader);
-
-			if( $isConfigXMLValid ) {
-				AwbXmlInterface::readConfigXML($reader);
-
-				$result = AwbDbInterface::createDestinationDatabse(AwbXmlInterface::$address );
-				if( $result ) {
-					AwbWpInterface::setSource($siteTemplate);
-					AwbDbInterface::setSourceDb();
-					AwbDbInterface::setDestinationDb( AwbXmlInterface::$address );
-
-					/*create destination Blog */
-					$isCreated = AwbWpInterface::createDestinationDirectory(AwbXmlInterface::$address );
-
-					if( $isCreated ){
-
-						/* Initiate Blog Copy  */
-						$isCopied = AwbWpInterface::copyBlog();
-						if( $isCopied ) {
-							/** copy database */
-							$sourceDB      = AwbDbInterface::getDatabaseName($siteTemplate);
-							$destinationDB = AwbDbInterface::getDatabaseName(AwbXmlInterface::$address);
-
-							/* update wp-config.php */
-							AwbWpInterface::updateWPconfig($destinationDB);
-
-							$isDbCopied    = AwbDbInterface::copyDatabase($sourceDB, $destinationDB );
-							if( $isDbCopied ){
-								AwbDbInterface::updateWpOptions();
-								$siteUrl = AwbWpInterface::getSiteUrl();
-
-								/*add Htacess */
-								AwbWpInterface::addHTACCESS();
-
-
-								/*udpate AW Blogger List */
-								AwbDbInterface::updateAwBloggerList();
-
-
-								/*Insert Categories in destination blog.*/
-								AwbDbInterface::insertCategories();
-
-								/*Insert Feeds in destination blog.*/
-								AwbDbInterface::insertFeeds();
-
-								/*Insert Top Menu Items.*/
-								AwbDbInterface::createTopMenu();
-
-								/*Insert footer Menu Items.*/
-								AwbDbInterface::createFooterMenu();
-
-								/*Update post in Database*/
-								AwbDbInterface::setupPosts();
-
-
-								/*Add logging stats */
-								$total 			= microtime(true) - $start;
-								// $totalTime 		= $total / 1000;
-								$totalTimeInSec = round($total, 2);
-
-								$args['site_name']  		=	AwbXmlInterface::$title;
-								$args['site_url']  			=	$siteUrl;
-								$args['total_time']  		=	$totalTimeInSec."ms";
-								$args['total_posts']  		=	AwbDbInterface::$total_posts;
-								$args['total_categories']  	=	AwbDbInterface::$total_categories;
-								$args['total_feeds'] 		=	AwbDbInterface::$total_feeds;
-
-								AwbLog::addLoggingStats($args);
-
-								echo '<h2>
-										<span>Site created Successfully:</span> <a href="'.$siteUrl.'" target="_blank"> Click here to check site.</a>
-									</h2>';
-
-							} else {
-								echo "<p>Database Not Cloned!</p>";
-							}
-						}
-					}
-
-				} else {
-					$message  = "ERROR: Error in creating new Database.";
-					echo "<p>".$message."</p>";
-				}
-			} else {
-
-				echo '<div style="color: red"><h3>Error in Reading config URL</h3></div>';
-			}
-
-		} else {
-			$message = "ERROR: Error in Selected Source Blog";
-			AwbLog::writeLog($message);
-			echo "<p>Error in Selected Source Blog.</p>";
-		}
-		AwbLog::endLogging();
-		echo '<h4><a href="http://iris.scanmine.com/wp-content/plugins/awBloggerV2/logs/'.$log_fileName.'" target="_blank"> Click here to check log. </a></h4>';
+		echo $html;
     }
 
     /**
