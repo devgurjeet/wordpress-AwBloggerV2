@@ -200,10 +200,9 @@ class AwbDbInterface {
 
 
 
-		$protocol 	= 	isset($_SERVER["https"]) ? 'https' : 'http';
-
-		$blog_path 	= 	$protocol . "://" . $_SERVER['SERVER_NAME'] . DIRECTORY_SEPARATOR . $address . DIRECTORY_SEPARATOR;
-
+		// $protocol 	= 	isset($_SERVER["https"]) ? 'https' : 'http';
+		// $blog_path 	= 	$protocol . "://" . $_SERVER['SERVER_NAME'] . DIRECTORY_SEPARATOR . $address . DIRECTORY_SEPARATOR;
+		$blog_path = AwbWpInterface::getSiteUrl();
 
 		/*update site URL */
 		$wpdb->update(

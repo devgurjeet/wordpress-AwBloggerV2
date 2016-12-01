@@ -194,8 +194,7 @@ class AwbFormProcessor {
 								$siteUrl = AwbWpInterface::getSiteUrl();
 
 								/*add Htacess */
-								AwbWpInterface::addHTACCESS();
-
+								//AwbWpInterface::addHTACCESS();
 
 								/*udpate AW Blogger List */
 								AwbDbInterface::updateAwBloggerList();

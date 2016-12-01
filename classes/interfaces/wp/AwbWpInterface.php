@@ -77,7 +77,11 @@ class AwbWpInterface {
 	}
 
 	public static function getSiteUrl( ) {
-		return 'http://iris.scanmine.com/'.AwbXmlInterface::$address.'/';
+		if( AwbFormProcessor::$mode == 'advanced'){
+			return 'http://www.pokerisverige.com/';
+		}else{
+			return 'http://iris.scanmine.com/'.AwbXmlInterface::$address.'/';
+		}
 	}
 
 
