@@ -78,12 +78,26 @@ class AwbWpInterface {
 
 	public static function getSiteUrl( ) {
 		if( AwbFormProcessor::$mode == 'advanced'){
-			return 'http://www.pokerisverige.com/';
+			return self::getProperUrl();
 		}else{
 			return 'http://iris.scanmine.com/'.AwbXmlInterface::$address.'/';
 		}
 	}
 
+	public static function getProperUrl( ){
+
+		$domain_url 	= AwbServerInterface::$domain_name_url;
+
+		$domain_urls 	= preg_replace('#^https?://#', '', $domain_url);
+		$domain_urls 	= str_replace("/", "", $domain_urls);
+
+
+		$protocol 	= 	isset($_SERVER["https"]) ? 'https' : 'http';
+
+		$blog_path 	= 	$protocol .'://'. $domain_urls .'/';
+
+		return $blog_path;
+	}
 
 	public static function updateWPconfig( $destinationDB ) {
 

@@ -336,8 +336,15 @@ class AwbDbInterface {
 
 		$site_url 			=	AwbWpInterface::getSiteUrl();
 
+		if(isset(AwbServerInterface::$config_name)){
+			$config_filename    =   AwbServerInterface::$config_name.".config";
+		}else{
+			$config_filename    =   '';
+		}
 
-		$sql  =	"INSERT INTO wp_aw_blog_sites ( `site_name`,`site_slug`,`site_theme`,`site_url`, `site_language`) values( '$site_name', '$site_slug', '$site_theme', '$site_url', '$site_language')";
+
+
+		$sql  =	"INSERT INTO wp_aw_blog_sites ( `site_name`,`site_slug`,`site_theme`,`site_url`, `site_language`, `config_filename`) values( '$site_name', '$site_slug', '$site_theme', '$site_url', '$site_language', '$config_filename')";
 		$wpdb->query( $sql );
 
 		$message  = "Success: Updated `Aw Blogger List` Successfully.";

@@ -138,6 +138,11 @@ class AwbFormProcessor {
 	public static function processCreateSiteFormAdvanced( $formData ) {
 		self::$mode =  $formData['mode'];
 
+		AwbServerInterface::$domain_name_url 	= trim($formData['domain_name_url']);
+		AwbServerInterface::$dom_alias 			= trim($formData['dom_alias']);
+		AwbServerInterface::$config_name 		= trim($formData['config_name']);
+		AwbServerInterface::$site_config 		= trim($formData['site_config']);
+
     	$siteTemplate = $formData['siteTemplate'];
 		$site_config  = $formData['site_config'];
 
@@ -215,6 +220,8 @@ class AwbFormProcessor {
 								/*Update post in Database*/
 								AwbDbInterface::setupPosts();
 
+								/*setup Doamin*/
+								AwbServerInterface::setupDomain();
 
 								/*Add logging stats */
 								$total 			= microtime(true) - $start;
